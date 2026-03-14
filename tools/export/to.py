@@ -9,6 +9,7 @@ import dinov3.custom_lib.utils
 import dinov3.custom_lib.export.exported_program
 import dinov3.custom_lib.export.coreml
 import dinov3.custom_lib.export.config as export_config
+import dinov3.custom_lib.export.models
 """
 works with python3.11 on ubuntu 22
 and pytorch 2.10
@@ -35,26 +36,6 @@ COREML_CONFIG = export_config.CoreMLConfig(spatial_shapes=[(512, 384),
 OUTPUT_PATH = "convnext_small_with_preprocess.mlpackage"
 
 
-class ConvNextWithPreProcess(nn.Module):
-
-    def __init__(self, backbone_model: torch.nn.Module) -> None:
-        super().__init__()
-        self.model = backbone_model
-
-        mean = (0.485, 0.456, 0.406)
-        std = (0.229, 0.224, 0.225)
-        self.register_buffer(
-            "mean",
-            torch.tensor(mean, dtype=torch.float32).view(1, 3, 1, 1))
-        self.register_buffer(
-            "std",
-            torch.tensor(std, dtype=torch.float32).view(1, 3, 1, 1))
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = (x - self.mean) / self.std
-        return self.model(x)
-
-
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser(
@@ -70,7 +51,8 @@ def main(export_format: ExportFormat) -> None:
 
     # Load PyTorch Model
     model = dinov3.custom_lib.utils.load_convnext_small_pretrained_pytorch()
-    full_model = ConvNextWithPreProcess(backbone_model=model)
+    full_model = dinov3.custom_lib.export.models.ConvNextWithPreProcess(
+        backbone_model=model)
     full_model.eval()
 
     # Export to ExportedProgram with dynamic shapes
