@@ -1,3 +1,8 @@
+.venv/
+
+datasets/
+weights/
+
 build/
 dist/
 *.egg-info/
