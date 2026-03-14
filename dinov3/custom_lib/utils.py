@@ -25,10 +25,7 @@ def load_convnext_small_pretrained_pytorch() -> torch.nn.Module:
 
 def load_convnext_base_pretrained_pytorch() -> torch.nn.Module:
     base_convnext = dinov3.models.convnext.get_convnext_arch("convnext_base")
-    model = base_convnext(
-        patch_size=16,
-        drop_path_rate=0.0,
-    )
+    model = base_convnext(drop_path_rate=0.0)
 
     weights_path = TORCH_WEIGHTS_DIR / "dinov3_convnext_base_pretrain_lvd1689m-801f2ba9.pth"
     cpkt = torch.load(weights_path.as_posix())
