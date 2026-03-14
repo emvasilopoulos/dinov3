@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Any
 
 import torch
 import coremltools as ct
@@ -38,7 +38,7 @@ def to_exported_program(
 
 def to_coreml(exported_program: torch.export.ExportedProgram,
               ct_input_shape: ct.EnumeratedShapes,
-              coreml_config: CoreMLConfig):
+              coreml_config: CoreMLConfig) -> Any:
     return ct.convert(
         exported_program,
         convert_to="mlprogram",
@@ -56,8 +56,8 @@ def to_coreml(exported_program: torch.export.ExportedProgram,
 
 def build_ct_input_shape(
         batch_sizes: BatchSizeRange,
-        spatial_shapes: List[Tuple[int, int]]) -> ct.EnumeratedShapes:
-    shapes = []
+        spatial_shapes: list[tuple[int, int]]) -> ct.EnumeratedShapes:
+    shapes: list[list[int]] = []
     for height, width in spatial_shapes:
         for batch_size in range(batch_sizes.minimum, batch_sizes.maximum):
             shapes.append([batch_size, 3, height, width])

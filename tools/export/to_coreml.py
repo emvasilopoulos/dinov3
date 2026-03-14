@@ -28,7 +28,7 @@ OUTPUT_PATH = "convnext_small_with_preprocess.mlpackage"
 
 class ConvNextWithPreProcess(nn.Module):
 
-    def __init__(self, backbone_model: torch.nn.Module):
+    def __init__(self, backbone_model: torch.nn.Module) -> None:
         super().__init__()
         self.model = backbone_model
 
@@ -41,12 +41,12 @@ class ConvNextWithPreProcess(nn.Module):
             "std",
             torch.tensor(std, dtype=torch.float32).view(1, 3, 1, 1))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = (x - self.mean) / self.std
         return self.model(x)
 
 
-def main():
+def main() -> None:
 
     # Load PyTorch Model
     model = dinov3.custom_lib.utils.load_convnext_small_pretrained_pytorch()

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import NamedTuple, List
+from typing import Any, NamedTuple
 
 import coremltools as ct
 
@@ -31,8 +31,7 @@ class ExportedProgramConfig:
 
     def __init__(self, batch_size_min: int, batch_size_max: int,
                  height_min: int, height_max: int, width_min: int,
-                 width_max: int):
-
+                 width_max: int) -> None:
         self.batch_size_range = BatchSizeRange(minimum=batch_size_min,
                                                maximum=batch_size_max)
         self.height_range = HeightRange(minimum=height_min, maximum=height_max)
@@ -41,13 +40,13 @@ class ExportedProgramConfig:
 
 class CoreMLConfig:
 
-    def __init__(self, spatial_shapes: List[SpatialShape], fp16: bool):
+    def __init__(self, spatial_shapes: list[SpatialShape], fp16: bool) -> None:
         self.spatial_shapes = spatial_shapes
         self.tensor_type = ct.converters.mil.mil.types.fp32 if not fp16 else ct.converters.mil.mil.types.fp16
         self.model_compute_precision = ct.precision.FLOAT32 if not fp16 else ct.precision.FLOAT16
 
 
-def _serialize_min_max_range(range_config: BaseMinMax):
+def _serialize_min_max_range(range_config: BaseMinMax) -> dict[str, int]:
     if dataclasses.is_dataclass(range_config):
         return dataclasses.asdict(range_config)
     return {
@@ -58,7 +57,8 @@ def _serialize_min_max_range(range_config: BaseMinMax):
 
 def get_metadata(exported_program_config: ExportedProgramConfig,
                  coreml_config: CoreMLConfig,
-                 extra_notes: List[str] = []):
+                 extra_notes: list[str] | None = None) -> dict[str, Any]:
+    notes = extra_notes if extra_notes is not None else []
     return {
         "exported_program_config": {
             "batch_size_range":
@@ -86,5 +86,5 @@ def get_metadata(exported_program_config: ExportedProgramConfig,
             "model_compute_precision":
             str(coreml_config.model_compute_precision),
         },
-        "notes": extra_notes
+        "notes": notes
     }
