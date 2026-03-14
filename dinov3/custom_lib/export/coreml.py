@@ -2,38 +2,7 @@ from typing import Any
 
 import torch
 import coremltools as ct
-from dinov3.custom_lib.export.config import CoreMLConfig, BatchSizeRange, HeightRange, WidthRange
-
-
-def to_exported_program(
-        model: torch.nn.Module, batch_size: BatchSizeRange,
-        height_range: HeightRange,
-        width_range: WidthRange) -> torch.export.ExportedProgram:
-    # Define dynamic dims for export
-    B = torch.export.Dim("batch",
-                         min=batch_size.minimum,
-                         max=batch_size.maximum)
-    H = torch.export.Dim("height",
-                         min=height_range.minimum,
-                         max=height_range.maximum)
-    W = torch.export.Dim("width",
-                         min=width_range.minimum,
-                         max=width_range.maximum)
-
-    dummy_input = torch.randn(batch_size.mid(),
-                              3,
-                              height_range.mid(),
-                              width_range.mid(),
-                              dtype=torch.float32)
-
-    dynamic_shapes = {"x": {0: B, 2: H, 3: W}}
-    with torch.no_grad():
-        exported_program_model = torch.export.export(
-            model,
-            (dummy_input, ),
-            dynamic_shapes=dynamic_shapes,
-        )
-        return exported_program_model.run_decompositions()
+from dinov3.custom_lib.export.config import CoreMLConfig, BatchSizeRange
 
 
 def to_coreml(exported_program: torch.export.ExportedProgram,
