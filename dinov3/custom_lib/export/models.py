@@ -53,6 +53,31 @@ class ConvNextWithPreProcess(nn.Module):
                                          mode="bilinear",
                                          align_corners=False)
 
+    @staticmethod
+    def resize_pad_image_vertical_small(x: torch.Tensor) -> torch.Tensor:
+        # output shape (512, 384)
+
+        # keep aspect ratio
+        h, w = x.shape[2], x.shape[3]
+        scale = min(512 / h, 384 / w)
+        new_h, new_w = int(h * scale), int(w * scale)
+        resized = nn.functional.interpolate(x,
+                                            size=(new_h, new_w),
+                                            mode="bilinear",
+                                            align_corners=False)
+        # pad to target size
+        pad_h = 512 - new_h
+        pad_w = 384 - new_w
+        pad_left = pad_w // 2
+        pad_right = pad_w - pad_left
+        pad_top = pad_h // 2
+        pad_bottom = pad_h - pad_top
+        padded = nn.functional.pad(resized,
+                                   (pad_left, pad_right, pad_top, pad_bottom),
+                                   mode="constant",
+                                   value=114)
+        return padded
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = (x - self.mean) / self.std
         return self.model(x)
