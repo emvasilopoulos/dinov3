@@ -51,9 +51,14 @@ def load_vit_small_pretrained_pytorch() -> torch.nn.Module:
     return vit
 
 
-IMAGE_TRANSFORM: T.Compose = T.Compose([
+# LVD-1689M (web images dataset) training normalization values
+IMAGE_TRANSFORM_NORM_LVD: T.Compose = T.Compose([
     T.ToTensor(),
     T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+IMAGE_TRANSFORM_TO_TENSOR: T.Compose = T.Compose([
+    T.ToTensor(),
 ])
 
 
@@ -61,18 +66,18 @@ def load_image_for_pretrained_model(image_path: pathlib.Path,
                                     normalize: bool = True) -> Tensor:
     image = PIL.Image.open(image_path).convert("RGB")
     if normalize:
-        return IMAGE_TRANSFORM(image)
+        return IMAGE_TRANSFORM_NORM_LVD(image)
     else:
-        return T.ToTensor()(image)
+        return IMAGE_TRANSFORM_TO_TENSOR(image)
 
 
 def save_image_tensor(image_tensor: Tensor,
                       save_path: pathlib.Path,
-                      normalize: bool = True) -> None:
+                      denormalize: bool = True) -> None:
     # image_tensor shape (1, 3, H, W) or (3, H, W)
     if image_tensor.dim() == 4:
         image_tensor = image_tensor.squeeze(0)
-    if normalize:
+    if denormalize:
         # unnormalize
         mean = torch.tensor([0.485, 0.456, 0.406],
                             dtype=torch.float32).view(3, 1, 1)
