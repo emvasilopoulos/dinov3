@@ -1,5 +1,6 @@
 import json
 import enum
+import pathlib
 
 import torch
 import torch.onnx
@@ -43,10 +44,15 @@ def parse_args():
                         choices=[f.name for f in ExportFormat],
                         default=ExportFormat.COREML.name,
                         type=str)
+    parser.add_argument(
+        "--weights-dir",
+        type=str,
+        default="weights",
+        help="Directory to save the exported weights (for ONNX)")
     return parser.parse_args()
 
 
-def main(export_format: ExportFormat) -> None:
+def main(export_format: ExportFormat, weights_dir: pathlib.Path) -> None:
 
     # Load PyTorch Model
     model = dinov3.custom_lib.load.pytorch.load_convnext_small_pretrained_pytorch(
@@ -72,12 +78,13 @@ def main(export_format: ExportFormat) -> None:
         # Export to CoreML
         coreml_model = dinov3.custom_lib.export.coreml.to_coreml(
             exported_program_model_decomposed, ct_input_shape, COREML_CONFIG)
-        coreml_model.save(OUTPUT_PATH)
-        print(f"Saved Core ML model to {OUTPUT_PATH}")
+        output_path = weights_dir / "coreml" / OUTPUT_PATH
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        coreml_model.save(output_path)
+        print(f"Saved Core ML model to {output_path}")
 
         # Save export metadata
-        with open("convnext_small_with_preprocess.mlpackage/metadata.json",
-                  "w") as f:
+        with open(output_path / "metadata.json", "w") as f:
             export_info = export_config.get_metadata(
                 exported_program_config=EXPORTED_PROGRAM_CONFIG,
                 coreml_config=COREML_CONFIG,
@@ -86,7 +93,8 @@ def main(export_format: ExportFormat) -> None:
                 ])
             json.dump(export_info, f)
     elif export_format == ExportFormat.ONNX:
-        onnx_path = "convnext_small_with_preprocess.onnx"
+        onnx_path = weights_dir / "onnx" / "convnext_small_with_preprocess.onnx"
+        onnx_path.parent.mkdir(parents=True, exist_ok=True)
         INPUT_NAMES = ["x"]
         assert set(dynamic_shapes.keys()) == set(
             INPUT_NAMES), "Dynamic shapes keys must match input names"
@@ -102,4 +110,6 @@ def main(export_format: ExportFormat) -> None:
 
 if __name__ == "__main__":
     args = parse_args()
-    main(ExportFormat[args.format])
+    weights_dir = pathlib.Path(args.weights_dir)
+    weights_dir.mkdir(parents=True, exist_ok=True)
+    main(ExportFormat[args.format], weights_dir)
