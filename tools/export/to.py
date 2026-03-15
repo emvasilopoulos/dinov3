@@ -3,13 +3,12 @@ import enum
 
 import torch
 import torch.onnx
-import torch.nn as nn
 
-import dinov3.custom_lib.utils
 import dinov3.custom_lib.export.exported_program
 import dinov3.custom_lib.export.coreml
 import dinov3.custom_lib.export.config as export_config
 import dinov3.custom_lib.export.models
+import dinov3.custom_lib.load.pytorch
 """
 works with python3.11 on ubuntu 22
 and pytorch 2.10
@@ -50,7 +49,8 @@ def parse_args():
 def main(export_format: ExportFormat) -> None:
 
     # Load PyTorch Model
-    model = dinov3.custom_lib.utils.load_convnext_small_pretrained_pytorch()
+    model = dinov3.custom_lib.load.pytorch.load_convnext_small_pretrained_pytorch(
+    )
     full_model = dinov3.custom_lib.export.models.ConvNextWithPreProcess(
         backbone_model=model)
     full_model.eval()

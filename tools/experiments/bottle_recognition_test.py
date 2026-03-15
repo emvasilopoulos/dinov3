@@ -3,11 +3,11 @@ import pathlib
 import pandas as pd
 import torch
 
-import dinov3.custom_lib.utils
 import dinov3.custom_lib.bottle_recognition_analysis.dataset
 import dinov3.custom_lib.bottle_recognition_analysis.features
 import dinov3.custom_lib.bottle_recognition_analysis.config
 from dinov3.custom_lib.export.models import ConvNextWithPreProcess
+import dinov3.custom_lib.load.pytorch
 
 EXP_CONFIG = dinov3.custom_lib.bottle_recognition_analysis.config.BottleRecognitionTestConfig(
     preprocess_normalize_pixels_imagenet=True,
@@ -37,11 +37,11 @@ else:
     _resize_fn = ConvNextWithPreProcess.resize_image
 
 if EXP_CONFIG.model == "convnext_small":
-    _load_model_fn = dinov3.custom_lib.utils.load_convnext_small_pretrained_pytorch
+    _load_model_fn = dinov3.custom_lib.load.pytorch.load_convnext_small_pretrained_pytorch
 elif EXP_CONFIG.model == "convnext_base":
-    _load_model_fn = dinov3.custom_lib.utils.load_convnext_base_pretrained_pytorch
+    _load_model_fn = dinov3.custom_lib.load.pytorch.load_convnext_base_pretrained_pytorch
 elif EXP_CONFIG.model == "vit_small":
-    _load_model_fn = dinov3.custom_lib.utils.load_vit_small_pretrained_pytorch
+    _load_model_fn = dinov3.custom_lib.load.pytorch.load_vit_small_pretrained_pytorch
 else:
     raise ValueError(
         f"Unsupported model '{EXP_CONFIG.model}'. Supported models: 'convnext_small', 'convnext_base', 'vit_small'."

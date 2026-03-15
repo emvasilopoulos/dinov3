@@ -3,6 +3,7 @@ import pathlib
 import matplotlib.pyplot as plt
 import torch
 import dinov3.custom_lib.utils
+import dinov3.custom_lib.load.pytorch
 
 IMAGES_DIR = pathlib.Path(__file__).parent.parent.parent / "datasets" / "cola"
 
@@ -18,7 +19,8 @@ def _is_horizontal_image(image_batch: torch.Tensor) -> bool:
 
 
 def main():
-    model = dinov3.custom_lib.utils.load_convnext_small_pretrained_pytorch()
+    model = dinov3.custom_lib.load.pytorch.load_convnext_small_pretrained_pytorch(
+    )
     model.eval()
     model.to(device=torch.device("cuda:0"))
 
