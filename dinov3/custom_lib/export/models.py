@@ -18,56 +18,29 @@ class ConvNextWithPreProcess(nn.Module):
             torch.tensor(std, dtype=torch.float32).view(1, 3, 1, 1))
 
     @staticmethod
-    def resize_image_vertical_small(x: torch.Tensor) -> torch.Tensor:
+    def resize_image(x: torch.Tensor, new_width: int,
+                     new_height: int) -> torch.Tensor:
         return nn.functional.interpolate(x,
-                                         size=(512, 384),
+                                         size=(new_height, new_width),
                                          mode="bilinear",
                                          align_corners=False)
 
     @staticmethod
-    def resize_image_square_small(x: torch.Tensor) -> torch.Tensor:
-        return nn.functional.interpolate(x,
-                                         size=(384, 384),
-                                         mode="bilinear",
-                                         align_corners=False)
-
-    @staticmethod
-    def resize_image_vertical_large(x: torch.Tensor) -> torch.Tensor:
-        return nn.functional.interpolate(x,
-                                         size=(768, 512),
-                                         mode="bilinear",
-                                         align_corners=False)
-
-    @staticmethod
-    def resize_image_square_large(x: torch.Tensor) -> torch.Tensor:
-        return nn.functional.interpolate(x,
-                                         size=(512, 512),
-                                         mode="bilinear",
-                                         align_corners=False)
-
-    @staticmethod
-    def resize_image_vertical_large2(x: torch.Tensor) -> torch.Tensor:
-        # Bad results - keeping for reference
-        return nn.functional.interpolate(x,
-                                         size=(768, 384),
-                                         mode="bilinear",
-                                         align_corners=False)
-
-    @staticmethod
-    def resize_pad_image_vertical_small(x: torch.Tensor) -> torch.Tensor:
+    def resize_pad_image(x: torch.Tensor, new_width: int,
+                         new_height: int) -> torch.Tensor:
         # output shape (512, 384)
 
         # keep aspect ratio
         h, w = x.shape[2], x.shape[3]
-        scale = min(512 / h, 384 / w)
+        scale = min(new_height / h, new_width / w)
         new_h, new_w = int(h * scale), int(w * scale)
         resized = nn.functional.interpolate(x,
                                             size=(new_h, new_w),
                                             mode="bilinear",
                                             align_corners=False)
         # pad to target size
-        pad_h = 512 - new_h
-        pad_w = 384 - new_w
+        pad_h = new_height - new_h
+        pad_w = new_width - new_w
         pad_left = pad_w // 2
         pad_right = pad_w - pad_left
         pad_top = pad_h // 2
@@ -76,31 +49,6 @@ class ConvNextWithPreProcess(nn.Module):
                                    (pad_left, pad_right, pad_top, pad_bottom),
                                    mode="constant",
                                    value=1.0)
-        return padded
-
-    @staticmethod
-    def resize_pad_image_square_small(x: torch.Tensor) -> torch.Tensor:
-        # output shape (384, 384)
-
-        # keep aspect ratio
-        h, w = x.shape[2], x.shape[3]
-        scale = min(384 / h, 384 / w)
-        new_h, new_w = int(h * scale), int(w * scale)
-        resized = nn.functional.interpolate(x,
-                                            size=(new_h, new_w),
-                                            mode="bilinear",
-                                            align_corners=False)
-        # pad to target size
-        pad_h = 384 - new_h
-        pad_w = 384 - new_w
-        pad_left = pad_w // 2
-        pad_right = pad_w - pad_left
-        pad_top = pad_h // 2
-        pad_bottom = pad_h - pad_top
-        padded = nn.functional.pad(resized,
-                                   (pad_left, pad_right, pad_top, pad_bottom),
-                                   mode="constant",
-                                   value=0.5)
         return padded
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
