@@ -2,7 +2,7 @@
 *mlpackage/
 datasets/
 weights/
-experiments/
+experiment_runs/
 *.onnx
 
 build/
