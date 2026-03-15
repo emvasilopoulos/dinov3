@@ -5,7 +5,7 @@ import dinov3.hub.backbones
 import dinov3.models.convnext
 
 CURRENT_FILE_PATH: pathlib.Path = pathlib.Path(__file__)
-TORCH_WEIGHTS_DIR: pathlib.Path = CURRENT_FILE_PATH.parent.parent.parent / "weights" / "pytorch"
+TORCH_WEIGHTS_DIR: pathlib.Path = CURRENT_FILE_PATH.parent.parent.parent.parent / "weights" / "pytorch"
 
 
 def _load_pretrained_convnext(arch_name: str, weights_filename: str,
