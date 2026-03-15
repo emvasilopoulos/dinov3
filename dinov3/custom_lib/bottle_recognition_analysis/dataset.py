@@ -30,7 +30,7 @@ def load_dataset(
     resize_fn_width: int,
     resize_fn_height: int,
     debug_images_dir: Optional[pathlib.Path] = None,
-) -> dict[str, BottleClassData]:
+) -> list[tuple[str, BottleClassData]]:
     subdirs = [d for d in dir_path.iterdir() if d.is_dir()]
     dataset = []
     for subdir in subdirs:
