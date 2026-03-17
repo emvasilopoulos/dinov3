@@ -1,8 +1,10 @@
 import dataclasses
+import pathlib
 
 import torch
-
 import onnxruntime as ort
+
+from dinov3.custom_lib.inference.base import BaseInferenceModel
 
 
 @dataclasses.dataclass
@@ -21,7 +23,7 @@ class OnnxExpectedInput:
     data: any = None
 
 
-class OnnxInferenceModel:
+class OnnxInferenceModel(BaseInferenceModel):
     """
     A class to represent an ONNX model for inference.
 
@@ -30,24 +32,15 @@ class OnnxInferenceModel:
         expected_inputs (list): A list of OnnxExpectedInput instances representing the expected inputs for the model.
     """
 
-    def __init__(self, model_path: str, expected_inputs: list):
-        self.session = ort.InferenceSession(model_path)
-        self.expected_inputs = expected_inputs
-
-    # compatibility with current codebase
-    def __call__(self, torch_image_batch: torch.Tensor) -> torch.Tensor:
-        """
-        Perform inference on a batch of images using the ONNX model.
-        Args:
-            torch_image_batch (torch.Tensor): A batch of images as a PyTorch tensor. (B, C, H, W)
-        Returns:
-            torch.Tensor: The output from the model as a PyTorch tensor. (B, D) where D is the output dimension of the model.
-        """
+    def load_model(self, model_path: pathlib.Path) -> ort.InferenceSession:
+        return ort.InferenceSession(model_path.as_posix())
+    
+    def inference(self, torch_image_batch: torch.Tensor) -> torch.Tensor:
         # Convert the PyTorch tensor to a NumPy array
         input_data = torch_image_batch.cpu().numpy()
 
         # Perform inference using the ONNX Runtime session
-        output = inference(self.session, input_data)
+        output = _inference(self.session, input_data)
 
         # Convert the output back to a PyTorch tensor
         output_tensor = torch.from_numpy(output[next(iter(output))])
@@ -55,7 +48,7 @@ class OnnxInferenceModel:
         return output_tensor
 
 
-def inference(session: ort.InferenceSession, input_data: dict) -> dict:
+def _inference(session: ort.InferenceSession, input_data: dict) -> dict:
     """
     Perform inference using the ONNX Runtime session.
 
