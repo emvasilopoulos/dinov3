@@ -29,7 +29,8 @@ EXPORTED_PROGRAM_CONFIG = export_config.ExportedProgramConfig(batch_size_min=1,
                                                               height_max=768,
                                                               width_min=384,
                                                               width_max=768)
-COREML_CONFIG = export_config.CoreMLConfig(spatial_shapes=[(512, 384),
+COREML_CONFIG = export_config.CoreMLConfig(spatial_shapes=[(512, 256),
+                                                           (512, 384),
                                                            (768, 512)],
                                            fp16=False)
 
