@@ -4,11 +4,11 @@ import coremltools as ct
 import torch
 
 from dinov3.custom_lib.inference.base import BaseInferenceModel
-
+import dinov3.custom_lib.load.coreml
 class CoreMLInferenceModel(BaseInferenceModel):
     
     def load_model(self, model_path: pathlib.Path) -> ct.models.MLModel:
-        return ct.models.MLModel(model_path.as_posix())
+        return dinov3.custom_lib.load.coreml.load_coreml_model(model_path)
 
     def inference(self, torch_image_batch: torch.Tensor) -> torch.Tensor:
         # Convert the PyTorch tensor to a NumPy array

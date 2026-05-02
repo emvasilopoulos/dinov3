@@ -11,7 +11,7 @@ def load_coreml_model(model_path: pathlib.Path) -> ct.models.MLModel:
     Returns:
         ct.models.MLModel: The loaded Core ML model.
     """
-    if not model_path.is_file():
-        raise FileNotFoundError(f"Model file not found: {model_path}")
-    model = ct.models.MLModel(model_path.as_posix())
-    return model
+    if not model_path.suffix == ".mlpackage" and not model_path.is_dir():
+        raise ValueError(f"Expected a .mlpackage folder, got {model_path.suffix}")
+
+    return ct.models.MLModel(model_path.as_posix())
