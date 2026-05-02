@@ -4,6 +4,8 @@ datasets/
 weights/
 experiment_runs/
 *.onnx
+.DS_Store
+*.db
 
 build/
 dist/
