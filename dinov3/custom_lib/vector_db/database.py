@@ -2,30 +2,37 @@ from __future__ import annotations
 
 import dataclasses
 import pathlib
-from typing import Iterable, Mapping, Sequence
+from typing import Iterable, Sequence
 
 import sqlite3
 import numpy as np
+import numpy.typing as npt
 
 from . import schema
 
-SqlValue = str | int | bytes | None
-VectorMetadata = Mapping[str, str | None]
-
+SqlValue = str | int | bytes
 
 @dataclasses.dataclass(frozen=True)
 class QueryResult:
     id: str
     score: float
     vector: np.ndarray
-    metadata: dict[str, str | None] = dataclasses.field(default_factory=dict)
+    product_name: str
+    brand: str
+    category: str
+    subcategory: str
+    image_name: str
 
 
 @dataclasses.dataclass(frozen=True)
 class VectorRecord:
     id: str
     vector: np.ndarray
-    metadata: dict[str, str | None]
+    product_name: str
+    brand: str
+    category: str
+    subcategory: str
+    image_name: str
 
 
 class VectorDatabase:
@@ -65,13 +72,11 @@ class VectorDatabase:
         self,
         vector_id: str,
         vector: Sequence[float] | np.ndarray,
-        metadata: VectorMetadata | None = None,
-        *,
-        product_name: str | None = None,
-        brand: str | None = None,
-        category: str | None = None,
-        subcategory: str | None = None,
-        image_name: str | None = None,
+        product_name: str,
+        brand: str,
+        category: str,
+        subcategory: str,
+        image_name: str,
     ) -> None:
         array = self._normalize_vector(vector)
         self.connection.execute(
@@ -79,7 +84,6 @@ class VectorDatabase:
             self._vector_row(
                 vector_id,
                 array,
-                metadata,
                 product_name=product_name,
                 brand=brand,
                 category=category,
@@ -89,18 +93,50 @@ class VectorDatabase:
         )
         self.connection.commit()
 
+    def _check_item(
+        self,
+        item: VectorRecord,
+    ) -> None:
+        if not isinstance(item, VectorRecord):
+            raise ValueError("Each item must be a VectorRecord instance.")
+        if not isinstance(item.id, str):
+            raise ValueError("Vector ID must be a string.")
+        if not isinstance(item.vector, np.ndarray):
+            raise ValueError("Vector must be a numpy array.")
+        if item.vector.dtype != np.float32:
+            raise ValueError("Vector dtype must be np.float32.")
+        if item.vector.ndim != 1:
+            raise ValueError("Vector must be one-dimensional.")
+        if not isinstance(item.product_name, str):
+            raise ValueError("Product name must be a string.")
+        if not isinstance(item.brand, str):
+            raise ValueError("Brand must be a string.")
+        if not isinstance(item.category, str):
+            raise ValueError("Category must be a string.")
+        if not isinstance(item.subcategory, str):
+            raise ValueError("Subcategory must be a string.")
+        if not isinstance(item.image_name, str):
+            raise ValueError("Image name must be a string.")
+        
     def add_vectors(
         self,
-        items: Iterable[
-            tuple[str, Sequence[float] | np.ndarray]
-            | tuple[str, Sequence[float] | np.ndarray, VectorMetadata]
-        ],
+        items: Iterable[VectorRecord],
     ) -> None:
         rows = []
         for item in items:
-            vector_id, vector, metadata = self._unpack_vector_item(item)
-            array = self._normalize_vector(vector)
-            rows.append(self._vector_row(vector_id, array, metadata))
+            self._check_item(item)
+            array = self._normalize_vector(item.vector)
+            rows.append(
+                self._vector_row(
+                    item.id,
+                    array,
+                    product_name=item.product_name,
+                    brand=item.brand,
+                    category=item.category,
+                    subcategory=item.subcategory,
+                    image_name=item.image_name,
+                )
+            )
 
         self.connection.executemany(schema.INSERT_VECTOR_SQL, rows)
         self.connection.commit()
@@ -121,7 +157,11 @@ class VectorDatabase:
         return VectorRecord(
             id=vector_id,
             vector=self._deserialize_vector(row),
-            metadata=self._metadata_from_row(row),
+            product_name=row["product_name"],
+            brand=row["brand"],
+            category=row["category"],
+            subcategory=row["subcategory"],
+            image_name=row["image_name"],
         )
 
     def delete_vector(self, vector_id: str) -> None:
@@ -166,7 +206,11 @@ class VectorDatabase:
                     id=row["id"],
                     score=score,
                     vector=candidate.copy(),
-                    metadata=self._metadata_from_row(row),
+                    product_name=row["product_name"],
+                    brand=row["brand"],
+                    category=row["category"],
+                    subcategory=row["subcategory"],
+                    image_name=row["image_name"],
                 )
             )
 
@@ -179,58 +223,33 @@ class VectorDatabase:
     def _vector_row(
         self,
         vector_id: str,
-        array: np.ndarray,
-        metadata: VectorMetadata | None = None,
-        *,
-        product_name: str | None = None,
-        brand: str | None = None,
-        category: str | None = None,
-        subcategory: str | None = None,
-        image_name: str | None = None,
+        array: npt.NDArray[np.float32],
+        product_name: str,
+        brand: str,
+        category: str,
+        subcategory: str,
+        image_name: str,
     ) -> dict[str, SqlValue]:
-        row: dict[str, SqlValue] = {
+        return {
             "id": vector_id,
             "dimensions": array.shape[0],
             "dtype": str(array.dtype),
             "vector": array.tobytes(),
-        }
-        row.update({column: None for column in self._metadata_columns()})
-
-        if metadata is not None:
-            unknown_columns = set(metadata) - set(self._metadata_columns())
-            if unknown_columns:
-                names = ", ".join(sorted(unknown_columns))
-                raise ValueError(f"Unknown metadata column(s): {names}")
-            row.update(metadata)
-
-        explicit_metadata = {
             "product_name": product_name,
             "brand": brand,
             "category": category,
             "subcategory": subcategory,
             "image_name": image_name,
         }
-        row.update(
-            {
-                column: value
-                for column, value in explicit_metadata.items()
-                if value is not None
-            }
-        )
-        return row
 
     def _unpack_vector_item(
         self,
-        item: tuple[str, Sequence[float] | np.ndarray]
-        | tuple[str, Sequence[float] | np.ndarray, VectorMetadata],
-    ) -> tuple[str, Sequence[float] | np.ndarray, VectorMetadata | None]:
+        item: tuple[str, Sequence[float] | np.ndarray],
+    ) -> tuple[str, Sequence[float] | np.ndarray]:
         if len(item) == 2:
             vector_id, vector = item
-            return vector_id, vector, None
-        if len(item) == 3:
-            vector_id, vector, metadata = item
-            return vector_id, vector, metadata
-        raise ValueError("Vector items must be (id, vector) or (id, vector, metadata).")
+            return vector_id, vector
+        raise ValueError("Vector items must be (id, vector).")
 
     def _normalize_vector(self, vector: Sequence[float] | np.ndarray) -> np.ndarray:
         array = np.asarray(vector, dtype=np.float32)
@@ -243,16 +262,6 @@ class VectorDatabase:
     def _deserialize_vector(self, row: sqlite3.Row) -> np.ndarray:
         array = np.frombuffer(row["vector"], dtype=np.dtype(row["dtype"]))
         return array.reshape((row["dimensions"],))
-
-    def _metadata_from_row(self, row: sqlite3.Row) -> dict[str, str | None]:
-        return {column: row[column] for column in self._metadata_columns()}
-
-    def _metadata_columns(self) -> tuple[str, ...]:
-        return tuple(
-            column
-            for column in schema.VECTOR_PAYLOAD_COLUMNS
-            if column not in {"dimensions", "dtype", "vector"}
-        )
 
     def _cosine_similarity(self, left: np.ndarray, right: np.ndarray) -> float:
         left_norm = float(np.linalg.norm(left))

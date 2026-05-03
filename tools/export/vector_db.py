@@ -101,22 +101,21 @@ def main() -> None:
     excel_path = pathlib.Path(args.excel_path)
     vectors = _compute_image_embeddings(excel_path, images_dir, model)
     items = (
-        (
-            str(index),
-            record["embedding"],
-            {
-                "product_name": record.get("product_name"),
-                "brand": record.get("brand"),
-                "category": record.get("category"),
-                "subcategory": record.get("subcategory"),
-                "image_name": record.get("image_name"),
-            },
+        dinov3.custom_lib.vector_db.database.VectorRecord(
+            id=str(index),
+            vector=record["embedding"],
+            product_name=record["product_name"],
+            brand=record["brand"],
+            category=record["category"],
+            subcategory=record["subcategory"],
+            image_name=record["image_name"],
         )
         for index, record in enumerate(vectors)
     )
 
     with dinov3.custom_lib.vector_db.database.VectorDatabase(db_path) as db:
-        db.add_vectors(items)
+        # db.add_vectors(items)
+        db.add_vectors([next(items)])
         print(f"Database: {db_path.resolve()}")
 
 if __name__ == "__main__":
